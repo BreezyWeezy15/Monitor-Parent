@@ -11,6 +11,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.Base64
 import android.widget.Toast
+import android.widget.Toast.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -97,9 +98,9 @@ fun ShowAppList() {
         val firebaseDatabase = FirebaseDatabase.getInstance().reference.child("Apps")
         firebaseDatabase.removeValue().addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                Toast.makeText(context, "All apps deleted", Toast.LENGTH_SHORT).show()
+                makeText(context, "All apps deleted", LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Failed to delete apps", Toast.LENGTH_SHORT).show()
+                makeText(context, "Failed to delete apps", LENGTH_SHORT).show()
             }
         }
     }
@@ -111,7 +112,7 @@ fun ShowAppList() {
                 actions = {
                     IconButton(onClick = {
                         if (availableApps.isEmpty()) {
-                            Toast.makeText(context, "No apps to delete", Toast.LENGTH_SHORT).show()
+                            makeText(context, "No apps to delete", LENGTH_SHORT).show()
                         } else {
                             deleteAllAppsFromFirebase()
                             availableApps.clear()  // Clear the list locally
@@ -228,7 +229,7 @@ fun ShowAppList() {
                         val intervalInMinutes = parseInterval(selectedInterval)
                         sendSelectedAppsToFirebase(selectedApps, intervalInMinutes, pinCode, context)
                     } else {
-                        Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                        makeText(context, "Please fill all required fields", LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier
@@ -344,23 +345,33 @@ fun rememberDrawablePainter(drawable: Drawable?): Painter {
 fun sendSelectedAppsToFirebase(selectedApps: List<InstalledApp>, selectedInterval: Int, pinCode: String, context: Context) {
     val firebaseDatabase = FirebaseDatabase.getInstance().reference.child("Apps")
 
-    selectedApps.forEach { app ->
-        val iconByteArray = app.icon?.let { drawableToByteArray(it) }
+    firebaseDatabase.child("type").setValue("new data")
+        .addOnSuccessListener {
+            selectedApps.forEach { app ->
+                val iconByteArray = app.icon?.let { drawableToByteArray(it) }
 
-        val appData = mapOf(
-            "package_name" to app.packageName,
-            "name" to app.name,
-            "interval" to selectedInterval.toString(),
-            "pin_code" to pinCode,
-            "icon" to iconByteArray?.let { Base64.encodeToString(it, Base64.DEFAULT) }
-        )
+                val appData = mapOf(
+                    "package_name" to app.packageName,
+                    "name" to app.name,
+                    "interval" to selectedInterval.toString(),
+                    "pin_code" to pinCode,
+                    "icon" to iconByteArray?.let { Base64.encodeToString(it, Base64.DEFAULT) }
+                )
 
-        firebaseDatabase.child(app.name.lowercase(Locale.ROOT)).setValue(appData)
-            .addOnSuccessListener {
-                Toast.makeText(context, "uploaded successfully", Toast.LENGTH_SHORT).show()
+                firebaseDatabase.child(app.name.lowercase(Locale.ROOT)).setValue(appData)
+                    .addOnSuccessListener {
+                        makeText(context, "uploaded successfully", LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener { e ->
+                        makeText(context, "Error uploading ${app.name}: ${e.message}", LENGTH_LONG).show()
+                    }
+
+
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "Error uploading ${app.name}: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-    }
+        }
+        .addOnFailureListener { e ->
+            makeText(context, "Error", LENGTH_LONG).show()
+        }
+
+
 }
